@@ -11,7 +11,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
-func gzipHandle(next http.Handler) http.Handler {
+func (h *Handler) gzipHandle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		if r.Header.Get("Content-Encoding") != "gzip" {
@@ -38,12 +38,12 @@ func gzipHandle(next http.Handler) http.Handler {
 	})
 }
 
-func (s server) checkUserAuth(next http.Handler) http.Handler {
+func (h *Handler) checkUserAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s.log.Info("Проверка аутентификации пользователя")
+		h.log.Info("Проверка аутентификации пользователя")
 		tokenHeader := r.Header.Get("Authorization")
 		if tokenHeader == "" {
-			s.log.Error("Токен пуст")
+			h.log.Error("Токен пуст")
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -53,13 +53,13 @@ func (s server) checkUserAuth(next http.Handler) http.Handler {
 		})
 
 		if err != nil {
-			s.log.Error(err.Error())
+			h.log.Error(err.Error())
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
 		if !token.Valid {
-			s.log.Error("Token not valid")
+			h.log.Error("Token not valid")
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}

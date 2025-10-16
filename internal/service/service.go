@@ -38,7 +38,7 @@ func NewService(ctx context.Context, storage storage.Storages, log *logrus.Logge
 	return service
 }
 
-func (s Service) GetUpdatesFromAccrualSystem(ctx context.Context, accrualSys string) {
+func (s *Service) GetUpdatesFromAccrualSystem(ctx context.Context, accrualSys string) {
 	var allResp []model.PointsAppResponse
 
 	ticker := time.NewTicker(1 * time.Second)
@@ -90,7 +90,7 @@ func (s Service) GetUpdatesFromAccrualSystem(ctx context.Context, accrualSys str
 	}
 }
 
-func (s Service) ParseUserCredentials(r *http.Request) (model.User, error) {
+func (s *Service) ParseUserCredentials(r *http.Request) (model.User, error) {
 	var user model.User
 	if r.Header.Get("Content-Type") != "application/json" {
 		contType := r.Header.Get("Content-Type")
@@ -110,7 +110,7 @@ func (s Service) ParseUserCredentials(r *http.Request) (model.User, error) {
 	return user, nil
 }
 
-func (s Service) RgstrUser(ctx context.Context, user model.User) error {
+func (s *Service) RgstrUser(ctx context.Context, user model.User) error {
 	s.Log.WithFields(logrus.Fields{"user": user.Login}).Info("Регистрация пользователя")
 	bytes, err := bcrypt.GenerateFromPassword([]byte(user.Password), 14)
 	if err != nil {
@@ -126,7 +126,7 @@ func (s Service) RgstrUser(ctx context.Context, user model.User) error {
 	return nil
 }
 
-func (s Service) AuthUser(ctx context.Context, user model.User) error {
+func (s *Service) AuthUser(ctx context.Context, user model.User) error {
 	checkPassword, err := s.storage.AuthUser(ctx, user)
 	if err != nil {
 		return model.ErrAuthFailed
@@ -141,7 +141,7 @@ func (s Service) AuthUser(ctx context.Context, user model.User) error {
 	return nil
 }
 
-func (s Service) AddUserOrder(ctx context.Context, number string, login string) error {
+func (s *Service) AddUserOrder(ctx context.Context, number string, login string) error {
 	if !utils.CheckLuhnAlg(number) {
 		s.Log.Error(model.ErrNotValidOrderNumber.Error())
 		return model.ErrNotValidOrderNumber
@@ -151,11 +151,11 @@ func (s Service) AddUserOrder(ctx context.Context, number string, login string) 
 	return err
 }
 
-func (s Service) GetUserOrders(ctx context.Context, login string) ([]model.OrdersResponse, error) {
+func (s *Service) GetUserOrders(ctx context.Context, login string) ([]model.OrdersResponse, error) {
 	return s.storage.GetOrders(ctx, login)
 }
 
-func (s Service) WriteWithdraw(ctx context.Context, withdraw model.OrderWithdraw, login string) error {
+func (s *Service) WriteWithdraw(ctx context.Context, withdraw model.OrderWithdraw, login string) error {
 	var balanceFloat float64
 
 	if !utils.CheckLuhnAlg(withdraw.Number) {
@@ -179,7 +179,7 @@ func (s Service) WriteWithdraw(ctx context.Context, withdraw model.OrderWithdraw
 	return s.storage.WriteWithdraw(ctx, withdraw, login)
 }
 
-func (s Service) GetBalance(ctx context.Context, login string) (model.Balance, error) {
+func (s *Service) GetBalance(ctx context.Context, login string) (model.Balance, error) {
 	balance, err := s.storage.GetBalance(ctx, login)
 	if err != nil {
 		return model.Balance{}, err
@@ -196,6 +196,6 @@ func (s Service) GetBalance(ctx context.Context, login string) (model.Balance, e
 	return balance, err
 }
 
-func (s Service) GetWithdrawals(ctx context.Context, login string) ([]model.OrderWithdraw, error) {
+func (s *Service) GetWithdrawals(ctx context.Context, login string) ([]model.OrderWithdraw, error) {
 	return s.storage.GetWithdrawals(ctx, login)
 }

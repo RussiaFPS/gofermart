@@ -46,7 +46,7 @@ func Round(x float64, prec int) float64 {
 	return rounder / pow
 }
 
-func AddAuthoriztionHeader(rw http.ResponseWriter, user model.User) error {
+func AddAuthorizationHeader(rw http.ResponseWriter, user model.User) error {
 	tk := &model.Token{Login: user.Login}
 	token := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), tk)
 	tokenString, err := token.SignedString([]byte("secret"))

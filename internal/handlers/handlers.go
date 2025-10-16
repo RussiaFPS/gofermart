@@ -14,14 +14,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (s server) userRegstr(rw http.ResponseWriter, r *http.Request) {
-	user, err := s.service.ParseUserCredentials(r)
+func (h *Handler) userRegstr(rw http.ResponseWriter, r *http.Request) {
+	user, err := h.service.ParseUserCredentials(r)
 	if err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	err = s.service.RgstrUser(r.Context(), user)
+	err = h.service.RgstrUser(r.Context(), user)
 	if err != nil {
 		if errors.Is(err, model.ErrLoginExists) {
 			rw.WriteHeader(http.StatusConflict)
@@ -31,26 +31,26 @@ func (s server) userRegstr(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = utils.AddAuthoriztionHeader(rw, user); err != nil {
-		s.log.Error(err.Error())
+	if err = utils.AddAuthorizationHeader(rw, user); err != nil {
+		h.log.Error(err.Error())
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	s.log.Info("Пользователь успешно зарегистрирован и аутентифицирован")
+	h.log.Info("Пользователь успешно зарегистрирован и аутентифицирован")
 	rw.WriteHeader(http.StatusOK)
 }
 
-func (s server) userAuth(rw http.ResponseWriter, r *http.Request) {
-	user, err := s.service.ParseUserCredentials(r)
+func (h *Handler) userAuth(rw http.ResponseWriter, r *http.Request) {
+	user, err := h.service.ParseUserCredentials(r)
 	if err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	s.log.WithFields(logrus.Fields{
+	h.log.WithFields(logrus.Fields{
 		"user": user.Login}).Info("Аутентификация пользователя")
 
-	err = s.service.AuthUser(r.Context(), user)
+	err = h.service.AuthUser(r.Context(), user)
 	if err != nil {
 		if errors.Is(err, model.ErrAuthFailed) {
 			rw.WriteHeader(http.StatusUnauthorized)
@@ -60,19 +60,18 @@ func (s server) userAuth(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = utils.AddAuthoriztionHeader(rw, user); err != nil {
-		s.log.Error(err.Error())
+	if err = utils.AddAuthorizationHeader(rw, user); err != nil {
+		h.log.Error(err.Error())
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	s.log.Info("Пользователь успешно аутентифицирован")
+	h.log.Info("Пользователь успешно аутентифицирован")
 	rw.WriteHeader(http.StatusOK)
 }
 
-func (s server) addOrder(rw http.ResponseWriter, r *http.Request) {
-
-	s.log.Info("Добавить заказ")
+func (h *Handler) addOrder(rw http.ResponseWriter, r *http.Request) {
+	h.log.Info("Добавить заказ")
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Printf("Add order handler| %v", err)
@@ -83,19 +82,19 @@ func (s server) addOrder(rw http.ResponseWriter, r *http.Request) {
 	number := string(body)
 
 	if r.Header.Get("Content-Type") != "text/plain" {
-		s.log.Error("Неверный Content-Type")
+		h.log.Error("Неверный Content-Type")
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	login, ok := r.Context().Value(model.KeyLogin).(string)
 	if !ok {
-		s.log.Error(model.ErrCastingType)
+		h.log.Error(model.ErrCastingType)
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	err = s.service.AddUserOrder(r.Context(), number, login)
+	err = h.service.AddUserOrder(r.Context(), number, login)
 	if err != nil {
 		if errors.Is(err, model.ErrOrderExistsSameUser) {
 			rw.WriteHeader(http.StatusOK)
@@ -116,14 +115,14 @@ func (s server) addOrder(rw http.ResponseWriter, r *http.Request) {
 	rw.WriteHeader(http.StatusAccepted)
 }
 
-func (s server) getOrders(rw http.ResponseWriter, r *http.Request) {
+func (h *Handler) getOrders(rw http.ResponseWriter, r *http.Request) {
 	login, ok := r.Context().Value(model.KeyLogin).(string)
 	if !ok {
-		s.log.Error(model.ErrCastingType.Error())
+		h.log.Error(model.ErrCastingType.Error())
 		rw.WriteHeader(http.StatusInternalServerError)
 	}
 
-	orders, err := s.service.GetUserOrders(r.Context(), login)
+	orders, err := h.service.GetUserOrders(r.Context(), login)
 	if err != nil {
 		rw.WriteHeader(http.StatusNoContent)
 		return
@@ -141,35 +140,35 @@ func (s server) getOrders(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Add("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusOK)
 
-	s.log.Info("Список заказов успешно возвращен")
+	h.log.Info("Список заказов успешно возвращен")
 	fmt.Fprint(rw, buf)
 }
 
-func (s server) withdraw(rw http.ResponseWriter, r *http.Request) {
+func (h *Handler) withdraw(rw http.ResponseWriter, r *http.Request) {
 	var withdraw model.OrderWithdraw
 
-	s.log.Info("Попытка списания средств")
+	h.log.Info("Попытка списания средств")
 
 	if r.Header.Get("Content-Type") != "application/json" {
-		s.log.Error("Неверный Content-Type")
+		h.log.Error("Неверный Content-Type")
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&withdraw); err != nil {
-		s.log.Error(err.Error())
+		h.log.Error(err.Error())
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	login, ok := r.Context().Value(model.KeyLogin).(string)
 	if !ok {
-		s.log.Error(model.ErrCastingType.Error())
+		h.log.Error(model.ErrCastingType.Error())
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	if err := s.service.WriteWithdraw(r.Context(), withdraw, login); err != nil {
+	if err := h.service.WriteWithdraw(r.Context(), withdraw, login); err != nil {
 		if errors.Is(err, model.ErrNotValidOrderNumber) {
 			rw.WriteHeader(http.StatusUnprocessableEntity)
 			return
@@ -181,19 +180,19 @@ func (s server) withdraw(rw http.ResponseWriter, r *http.Request) {
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	s.log.Info("Списание произошло")
+	h.log.Info("Списание произошло")
 	rw.WriteHeader(http.StatusOK)
 }
 
-func (s server) getWithdrawals(rw http.ResponseWriter, r *http.Request) {
-	s.log.Info("Получение информации о выводе средств")
+func (h *Handler) getWithdrawals(rw http.ResponseWriter, r *http.Request) {
+	h.log.Info("Получение информации о выводе средств")
 	login, ok := r.Context().Value(model.KeyLogin).(string)
 	if !ok {
-		s.log.Error(model.ErrCastingType.Error())
+		h.log.Error(model.ErrCastingType.Error())
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	withdrawals, err := s.service.GetWithdrawals(r.Context(), login)
+	withdrawals, err := h.service.GetWithdrawals(r.Context(), login)
 	if err != nil {
 		if errors.Is(err, model.ErrNoWithdrawals) {
 			rw.WriteHeader(http.StatusNoContent)
@@ -210,23 +209,23 @@ func (s server) getWithdrawals(rw http.ResponseWriter, r *http.Request) {
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	s.log.WithFields(logrus.Fields{"withdrawals": withdrawals}).Info("Информация о выводе средств получена")
+	h.log.WithFields(logrus.Fields{"withdrawals": withdrawals}).Info("Информация о выводе средств получена")
 	rw.Header().Add("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusOK)
 	fmt.Fprint(rw, buf)
 }
 
-func (s server) getBalance(rw http.ResponseWriter, r *http.Request) {
-	s.log.Info("Получение баланса")
+func (h *Handler) getBalance(rw http.ResponseWriter, r *http.Request) {
+	h.log.Info("Получение баланса")
 
 	login, ok := r.Context().Value(model.KeyLogin).(string)
 	if !ok {
-		s.log.Error(model.ErrCastingType.Error())
+		h.log.Error(model.ErrCastingType.Error())
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	balance, err := s.service.GetBalance(r.Context(), login)
+	balance, err := h.service.GetBalance(r.Context(), login)
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 	}
@@ -243,7 +242,6 @@ func (s server) getBalance(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Add("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusOK)
 
-	s.log.Info("Баланс пользователя успешно возвращен")
+	h.log.Info("Баланс пользователя успешно возвращен")
 	fmt.Fprint(rw, buf)
-
 }
