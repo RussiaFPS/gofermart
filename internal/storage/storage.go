@@ -183,23 +183,40 @@ func (db *DBStruct) GetOrders(ctx context.Context, login string) ([]model.Orders
 }
 
 func (db *DBStruct) WriteWithdraw(ctx context.Context, withdraw model.OrderWithdraw, login string) error {
+	tx, err := db.pgxPool.Begin(ctx)
+	if err != nil {
+		db.log.Error("Не удалось начать транзакцию: ", err.Error())
+		return err
+	}
+	defer tx.Rollback(ctx)
 	db.log.WithFields(logrus.Fields{
 		"number":   withdraw.Number,
 		"withdraw": withdraw.Withdraw,
 	}).Info("Запись в таблицу OrdersHistory")
-	_, err := db.pgxPool.Exec(ctx, addOrderHistory, withdraw.Number, withdraw.Withdraw, time.Now().Format(time.RFC3339))
+
+	_, err = tx.Exec(ctx, addOrderHistory, withdraw.Number, withdraw.Withdraw, time.Now().Format(time.RFC3339))
 	if err != nil {
-		db.log.Error(err.Error())
+		db.log.Error("Не удалось добавить в OrdersHistory: ", err.Error())
 		return err
 	}
+
 	db.log.WithFields(logrus.Fields{
 		"number": withdraw.Number,
 		"login":  login,
 	}).Info("Запись в таблицу orders")
-	_, err = db.pgxPool.Exec(ctx, insertOrder, withdraw.Number, login, nil)
+
+	_, err = tx.Exec(ctx, insertOrder, withdraw.Number, login, nil)
 	if err != nil {
-		db.log.Error(err.Error())
+		db.log.Error("Не удалось добавить заказ: ", err.Error())
+		return err
 	}
+
+	if err = tx.Commit(ctx); err != nil {
+		db.log.Error("Не удалось зафиксировать транзакцию: ", err.Error())
+		return err
+	}
+
+	db.log.Info("Транзакция по выводу средств успешно завершена")
 	return nil
 }
 
