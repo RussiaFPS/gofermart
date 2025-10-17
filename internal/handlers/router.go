@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/RussiaFPS/gofermart/internal/config"
 	"github.com/RussiaFPS/gofermart/internal/service"
 	"github.com/go-chi/chi/v5"
 	"github.com/sirupsen/logrus"
@@ -9,12 +10,14 @@ import (
 type Handler struct {
 	service service.Services
 	log     *logrus.Logger
+	cfg     *config.Config
 }
 
-func NewRouter(service service.Services, log *logrus.Logger) chi.Router {
+func NewRouter(service service.Services, log *logrus.Logger, cfg *config.Config) chi.Router {
 	h := &Handler{
 		service: service,
 		log:     log,
+		cfg:     cfg,
 	}
 	router := chi.NewRouter()
 

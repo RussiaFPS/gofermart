@@ -49,7 +49,7 @@ func (h *Handler) checkUserAuth(next http.Handler) http.Handler {
 		}
 		tk := &model.Token{}
 		token, err := jwt.ParseWithClaims(tokenHeader, tk, func(token *jwt.Token) (interface{}, error) {
-			return []byte("secret"), nil
+			return []byte(h.cfg.SecretKey), nil
 		})
 
 		if err != nil {

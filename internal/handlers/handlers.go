@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/RussiaFPS/gofermart/internal/model"
 	"github.com/RussiaFPS/gofermart/internal/utils"
 	"io"
@@ -31,7 +30,7 @@ func (h *Handler) userRegstr(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = utils.AddAuthorizationHeader(rw, user); err != nil {
+	if err = utils.AddAuthorizationHeader(rw, user, h.cfg.SecretKey); err != nil {
 		h.log.Error(err.Error())
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
@@ -60,7 +59,7 @@ func (h *Handler) userAuth(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = utils.AddAuthorizationHeader(rw, user); err != nil {
+	if err = utils.AddAuthorizationHeader(rw, user, h.cfg.SecretKey); err != nil {
 		h.log.Error(err.Error())
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
@@ -140,8 +139,12 @@ func (h *Handler) getOrders(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Add("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusOK)
 
+	if _, err = rw.Write(buf.Bytes()); err != nil {
+		h.log.Error("Не удалось написать ответ:", err)
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	h.log.Info("Список заказов успешно возвращен")
-	fmt.Fprint(rw, buf)
 }
 
 func (h *Handler) withdraw(rw http.ResponseWriter, r *http.Request) {
@@ -212,7 +215,11 @@ func (h *Handler) getWithdrawals(rw http.ResponseWriter, r *http.Request) {
 	h.log.WithFields(logrus.Fields{"withdrawals": withdrawals}).Info("Информация о выводе средств получена")
 	rw.Header().Add("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusOK)
-	fmt.Fprint(rw, buf)
+	if _, err = rw.Write(buf.Bytes()); err != nil {
+		h.log.Error("Не удалось написать ответ:", err)
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }
 
 func (h *Handler) getBalance(rw http.ResponseWriter, r *http.Request) {
@@ -228,6 +235,7 @@ func (h *Handler) getBalance(rw http.ResponseWriter, r *http.Request) {
 	balance, err := h.service.GetBalance(r.Context(), login)
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	buf := bytes.NewBuffer([]byte{})
@@ -242,6 +250,10 @@ func (h *Handler) getBalance(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Add("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusOK)
 
+	if _, err = rw.Write(buf.Bytes()); err != nil {
+		h.log.Error("Не удалось написать ответ:", err)
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	h.log.Info("Баланс пользователя успешно возвращен")
-	fmt.Fprint(rw, buf)
 }

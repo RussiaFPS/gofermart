@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"github.com/RussiaFPS/gofermart/internal/config"
 	"github.com/RussiaFPS/gofermart/internal/model"
 	"github.com/RussiaFPS/gofermart/internal/storage"
 	"github.com/RussiaFPS/gofermart/internal/utils"
@@ -12,6 +13,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 )
+
+const bcryptCost = 14
 
 type Services interface {
 	RgstrUser(ctx context.Context, user model.User) error
@@ -27,14 +30,16 @@ type Services interface {
 type Service struct {
 	storage storage.Storages
 	Log     *logrus.Logger
+	cfg     *config.Config
 }
 
-func NewService(ctx context.Context, storage storage.Storages, log *logrus.Logger, accrualSys string) *Service {
+func NewService(ctx context.Context, storage storage.Storages, log *logrus.Logger, cfg *config.Config) *Service {
 	service := &Service{
 		storage: storage,
 		Log:     log,
+		cfg:     cfg,
 	}
-	go service.GetUpdatesFromAccrualSystem(ctx, accrualSys)
+	go service.GetUpdatesFromAccrualSystem(ctx, cfg.AccrualSys)
 	return service
 }
 
@@ -112,7 +117,7 @@ func (s *Service) ParseUserCredentials(r *http.Request) (model.User, error) {
 
 func (s *Service) RgstrUser(ctx context.Context, user model.User) error {
 	s.Log.WithFields(logrus.Fields{"user": user.Login}).Info("Регистрация пользователя")
-	bytes, err := bcrypt.GenerateFromPassword([]byte(user.Password), 14)
+	bytes, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcryptCost)
 	if err != nil {
 		s.Log.Error(err.Error())
 		return err

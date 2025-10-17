@@ -9,44 +9,24 @@ import (
 
 type Config struct {
 	Server     string `env:"RUN_ADDRESS" envDefault:"localhost:8080"`
-	Database   string `env:"DATABASE_URI"`
+	Database   string `env:"DATABASE_URI" envDefault:"postgres://postgres:qwer1234@localhost:5432/gofermart"`
 	AccrualSys string `env:"ACCRUAL_SYSTEM_ADDRESS" envDefault:"http://localhost:8080/"`
+	SecretKey  string `env:"SECRET_KEY" envDefault:"secret"`
 }
 
-var (
-	localAddr = "localhost:8080"
-	baseURL   = "http://localhost:8080/"
-	database  = "user=user password=psw host=localhost port=5432 dbname=gofermart sslmode=disable"
-)
+func GetConfig(log *logrus.Logger) (*Config, error) {
+	cfg := &Config{}
 
-func GetConfig(log *logrus.Logger) (Config, error) {
-	var cfg Config
-	var cfgFlag Config
-
-	err := env.Parse(&cfg)
-	if err != nil {
-		return Config{}, err
+	if err := env.Parse(cfg); err != nil {
+		return nil, err
 	}
 
-	flag.StringVar(&cfgFlag.Server, "a", localAddr, "HTTP server address")
-	flag.StringVar(&cfgFlag.Database, "d", database, "Database connections")
-	flag.StringVar(&cfgFlag.AccrualSys, "r", baseURL, "Accrual system")
+	flag.StringVar(&cfg.Server, "a", cfg.Server, "HTTP server address")
+	flag.StringVar(&cfg.Database, "d", cfg.Database, "Database connections")
+	flag.StringVar(&cfg.AccrualSys, "r", cfg.AccrualSys, "Accrual system")
+	flag.StringVar(&cfg.SecretKey, "k", cfg.SecretKey, "Secret key")
 	flag.Parse()
 
-	log.WithFields(logrus.Fields{"cfgFlag": cfgFlag}).Info("Получены флаги командной строки")
-
-	if cfg.Server == "" || cfg.Server == localAddr {
-		cfg.Server = cfgFlag.Server
-	}
-
-	if cfg.Database == "" || cfg.Database == database {
-		cfg.Database = cfgFlag.Database
-	}
-
-	if cfg.AccrualSys == "" {
-		cfg.AccrualSys = cfgFlag.AccrualSys
-	}
-
 	log.WithFields(logrus.Fields{"cfg": cfg}).Info("Итоговая конфигурация")
-	return cfg, err
+	return cfg, nil
 }

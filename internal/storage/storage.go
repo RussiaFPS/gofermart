@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"errors"
+	"github.com/RussiaFPS/gofermart/internal/config"
 	"github.com/RussiaFPS/gofermart/internal/model"
 	"sort"
 	"time"
@@ -29,16 +30,18 @@ type Storages interface {
 type DBStruct struct {
 	pgxPool *pgxpool.Pool
 	log     *logrus.Logger
+	cfg     *config.Config
 }
 
-func NewStorage(ctx context.Context, connString string, log *logrus.Logger) (*DBStruct, error) {
-	pgxPool, err := InitConnection(ctx, connString, log)
+func NewStorage(ctx context.Context, cfg *config.Config, log *logrus.Logger) (*DBStruct, error) {
+	pgxPool, err := InitConnection(ctx, cfg.Database, log)
 	if err != nil {
 		return nil, err
 	}
 	return &DBStruct{
 		pgxPool: pgxPool,
 		log:     log,
+		cfg:     cfg,
 	}, nil
 }
 

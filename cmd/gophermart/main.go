@@ -23,12 +23,12 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	storages, err := storage.NewStorage(ctx, cfg.Database, log)
+	storages, err := storage.NewStorage(ctx, cfg, log)
 	if err != nil {
 		return
 	}
-	services := service.NewService(ctx, storages, log, cfg.AccrualSys)
-	router := handlers.NewRouter(services, log)
+	services := service.NewService(ctx, storages, log, cfg)
+	router := handlers.NewRouter(services, log, cfg)
 
 	err = http.ListenAndServe(cfg.Server, router)
 	if err != nil {
