@@ -2,9 +2,8 @@ package model
 
 import (
 	"errors"
+	"github.com/golang-jwt/jwt/v5"
 	"time"
-
-	"github.com/dgrijalva/jwt-go"
 )
 
 type User struct {
@@ -14,7 +13,7 @@ type User struct {
 
 type Token struct {
 	Login string
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 type OrdersResponse struct {

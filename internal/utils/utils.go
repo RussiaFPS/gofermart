@@ -2,10 +2,9 @@ package utils
 
 import (
 	"github.com/RussiaFPS/gofermart/internal/model"
+	"github.com/golang-jwt/jwt/v5"
 	"math"
 	"net/http"
-
-	"github.com/dgrijalva/jwt-go"
 )
 
 const (
@@ -47,8 +46,11 @@ func Round(x float64, prec int) float64 {
 }
 
 func AddAuthorizationHeader(rw http.ResponseWriter, user model.User, secret string) error {
-	tk := &model.Token{Login: user.Login}
-	token := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), tk)
+	claims := &model.Token{
+		Login: user.Login,
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString([]byte(secret))
 	if err != nil {
 		return err

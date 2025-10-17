@@ -4,11 +4,10 @@ import (
 	"compress/gzip"
 	"context"
 	"github.com/RussiaFPS/gofermart/internal/model"
+	"github.com/golang-jwt/jwt/v5"
 	"io"
 	"net/http"
 	"strings"
-
-	"github.com/dgrijalva/jwt-go"
 )
 
 func (h *Handler) gzipHandle(next http.Handler) http.Handler {
