@@ -25,10 +25,10 @@ func main() {
 	}
 
 	storages, err := storage.NewStorage(context.Background(), cfg, log)
-	defer storages.Close()
 	if err != nil {
 		return
 	}
+	defer storages.Close()
 	services := service.NewService(context.Background(), storages, log, cfg)
 	router := handlers.NewRouter(services, log, cfg)
 
@@ -39,12 +39,12 @@ func main() {
 
 	go func() {
 		if err = srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Error("listen: %s\n", err)
+			log.Errorf("listen: %s\n", err)
 			return
 		}
 	}()
 
-	log.Info("Server started at %v", cfg.Server)
+	log.Infof("Server started at %v", cfg.Server)
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
